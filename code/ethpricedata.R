@@ -15,28 +15,75 @@ pricedocs <- list.files("./data",recursive = TRUE, full.names = TRUE)
 
 
 for (pricedoc in pricedocs) {
-    doc <- read_document("1.Retail Price for The Month of JULY  2013.docx") 
+    doc <- read_document("data/1.Retail Price for The Month of JULY  2013.docx") 
     i <- 1
     j <- 0
     table_num <- 0
+    mrkts <- list()
     
     anchor <- 0
     birr <- 0
+    item_count <- 0
+    mrkts_count <- 0
+    
+    prices <- list()
+    region <- NA
+    mrkts <- list()
+    monthyear <- NA
+    
     
     while (TRUE) {
-      print(i)
+      # print(i)
+      # print(doc[i])
+      # Initiate a table
       if (substr(doc[i], 1, 5) == "Table"){
+        j <- j + 1
+        if (j == 3)break()
+        
         table_num <- table_num + 1
+        if (table_num != 1){
+          for (aa_region in c(1:num_of_regions)) {
+            datalist = list()
+            filename <- "myDF.csv"
+            list_names <- names(prices)
+            list_names <- list_names[endsWith(list_names, paste0("_", aa_region))]
+            
+            
+            for (entry in c(1:length(mrkts[[aa_region]]))) {
+                datalist[[length(datalist) + 1]] <- c(region[aa_region], mrkts[[aa_region]][entry])
+                
+              for (entry1 in  c(1:length(list_names))) {
+                datalist[[length(datalist)]] <- c(datalist[[length(datalist)]], prices[[list_names[entry1]]])
+              }
+            }
+            
+            
+            
+            #if (1 == aa_region) tmp3 <- datalist
+            
+            myDF = do.call(rbind, datalist)
+            # print(myDF)
+              
+            
+            write.table(myDF, filename, sep = ",", col.names =F , append = T)
+            myDF <- data.frame()
+            print(region)
+          }
+        }
+        
+        
+        
+        item_count <- 0
+        mrkts_count <- 0
+        prices <- list()
         anchor <- i
         birr <- 0
         print(paste0("table_num: ", table_num))
         
-        j <- j + 1
-        if (j == 5)break()
       }
       
       
-      
+      # Get Month year information
       if (i == anchor + 1 ){
         monthyear <- strsplit(doc[i],"\\s+")
       }
@@ -56,23 +103,41 @@ for (pricedoc in pricedocs) {
         } 
       }
       if (i == anchor + 10 ){
-        start0_mrkt <- 0
-        ######## continue here #######
+        start0_mrkt <- 1
         
         for (a_region in c(1:num_of_regions)){
-          mrkts <- strsplit(doc[i],"\\s+")
-          mrkts <- mrkts[[1]][grepl("^[A-Za-z]+.+$", mrkts[[1]])]}
+          part_str <- substr(doc[i], start0_mrkt, as.numeric(ave_str.stp[[1]][a_region, 2]))
+          mrkts1 <- strsplit(part_str,"\\s+")
+          mrkts_count <- mrkts_count + 1
+          mrkts[[mrkts_count]] <- mrkts1[[1]][grepl("^[A-Za-z]+.+$", mrkts1[[1]])]
+          # print(part_str)
+          # print(paste0("test: ", as.numeric(ave_str.stp[[1]][a_region, 2])))
+          start0_mrkt <- as.numeric(ave_str.stp[[1]][a_region, 2]) + 1
+          
+        }
       }
       
       if (doc[i] == "P R I C E   I N    B I R R") birr <- 1
-      print(doc[i])
+      # print(doc[i])
       
       if (birr == 1){
         if (!grepl("...... Kg", doc[i])) ttle <- doc[i]
+        
         if (grepl("...... Kg", doc[i])){
+          # Get item name
+          item_name <- gsub('[.]{2,}', "", strsplit(doc[i],". Kg")[[1]][1])
+          
           prices_str <- strsplit(doc[i],"...... Kg")[[1]][2]
-          prices <- strsplit(prices_str,"\\s+")
-          prices <- prices[[1]][(prices[[1]] %in% "-") | grepl("^[[:digit:]]+", prices[[1]])]
+          start0_price <- 1
+          
+          for (a_region in c(1:num_of_regions)){
+            part_prices_str <- substr(doc[i], start0_price, as.numeric(ave_str.stp[[1]][a_region, 2]))
+            prices1 <- strsplit(part_prices_str,"\\s+")
+            # item_count <- item_count + 1
+            prices[[paste0(item_name, "_", a_region)]] <- prices1[[1]][(prices1[[1]] %in% "-") | grepl("^[[:digit:]]+", prices1[[1]])]
+            # print(prices)
+            start0_price <- as.numeric(ave_str.stp[[1]][a_region, 2]) + 1
+          }
         }
           
           
@@ -84,6 +149,9 @@ for (pricedoc in pricedocs) {
       
       i <- i + 1
     }
+    
+    
+    
     print(monthyear)
     print(region)
     print(mrkts)
