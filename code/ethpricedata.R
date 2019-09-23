@@ -48,12 +48,20 @@ for (pricedoc in pricedocs) {
         region <- region[[1]][grepl("^[A-Za-z]+.+$", region[[1]])]
       }
       
-      if (i == anchor + 7 ){
-      str_locate(string, pattern)
+      if (i == anchor + 9 ){
+        ave_str.stp <- str_locate_all(doc[i], "AVERAGE")
+        num_of_regions <- 0
+        if (!is.na(ave_str.stp[[1]][1])){
+          num_of_regions <- dim(ave_str.stp[[1]])[1]
+        } 
       }
       if (i == anchor + 10 ){
-        mrkts <- strsplit(doc[i],"\\s+")
-        mrkts <- mrkts[[1]][grepl("^[A-Za-z]+.+$", mrkts[[1]])]
+        start0_mrkt <- 0
+        ######## continue here #######
+        
+        for (a_region in c(1:num_of_regions)){
+          mrkts <- strsplit(doc[i],"\\s+")
+          mrkts <- mrkts[[1]][grepl("^[A-Za-z]+.+$", mrkts[[1]])]}
       }
       
       if (doc[i] == "P R I C E   I N    B I R R") birr <- 1
@@ -82,8 +90,8 @@ for (pricedoc in pricedocs) {
     print(birr)
     print(prices)
     print(length(prices))
-    # tmp <- prices[[1]][(prices[[1]]) %in% "-"]
-    # print(tmp)
+    tmp <- ave_str.stp
+    print(tmp)
   break()
 }
 
