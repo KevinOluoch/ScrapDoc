@@ -11,12 +11,12 @@ library(magrittr)
 library(stringr)
 
 # Get files
-pricedocs <- list.files("./data",recursive = TRUE, full.names = TRUE)
+pricedocs <- list.files("./data",recursive = TRUE, full.names = TRUE, pattern = "*[.]docx$")
 
 
 for (pricedoc in pricedocs) {
     ##### Initialize Variables  #####
-    doc <- read_document("data/1.Retail Price for The Month of JULY  2013.docx") 
+    doc <- read_document(pricedoc) 
     i <- 1
     j <- 0
     table_num <- 0
@@ -48,44 +48,28 @@ for (pricedoc in pricedocs) {
             datalist = list()
             filename <- "myDF.csv"
             list_names <- names(prices)
-            
-            print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-            print(list_names)
-            print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$1")
-            if(is.null(list_names)) break()
-            
+            if(is.null(list_names)) break() 
             list_names <- list_names[endsWith(list_names, paste0("_", aa_region))]
-            list_names
-            if(is.null(list_names)) {
-              
-              break()}
-            
             
             for (entry in c(1:length(mrkts[[aa_region]]))) {
               datalist[[length(datalist) + 1]] <- c(region[aa_region], mrkts[[aa_region]][entry])
                 
               for (entry1 in  c(1:length(list_names))) {
-                # for (entry2 in c(1:length(prices[[ list_names[entry1 ] ]]))) {
-                  
                   datalist[[length(datalist)]] <- c(datalist[[length(datalist)]], prices[[ list_names[entry1 ] ]][entry] )
-                  # print(datalist[[length(datalist)]])
-                  
-                # }
               }
             }
-            
-            
-            
-          
-            
-            myDF = do.call(rbind, datalist)
-            # print(myDF)
-              
-            
-            write.table(myDF, filename, sep = ",", col.names =F , append = T)
-            myDF <- data.frame()
-            print(region)
+
+            mylist[[aa_region]] <- do.call(cbind, (datalist))
           }
+          for (aa_region in c(1:num_of_regions)) {
+            
+            ##### Continue here mapping saving mylist to one dataframe
+          }
+          # print(myDF)
+          
+          write.table(myDF, filename, sep = ",", col.names =F , append = T)
+          myDF <- list()
+          print(region)
         }
         
         
@@ -169,7 +153,7 @@ for (pricedoc in pricedocs) {
             # print(prices)
             if(is.na(prices[[paste0(ttle, item_name, "_", a_region)]][1])){
               print('##############%%%%%%%%%%%%%%%%%%%%%%%%%yay%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-              print(prices[[paste0(ttle, item_name, "_", a_region)]])
+              prices[[paste0(ttle, item_name, "_", a_region)]] <- c()
               
               }
             start0_price <- as.numeric(ave_str.stp[[1]][a_region, 2]) + 1
