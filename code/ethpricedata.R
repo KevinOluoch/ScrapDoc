@@ -31,19 +31,27 @@ for (pricedoc in pricedocs) {
     mrkts <- list()
     monthyear <- NA
     num_of_regions <- 0
+    mylist <- list()
     
     ##### While Loop The DOc  #####    
     while (TRUE) {
       # print(i)
       # print(doc[i])
       ##### Initiate and Save Table ####
-      if (substr(doc[i], 1, 5) == "Table"){
+      if ( grepl("^Table[[:space:]]+[0-9][[:space:]]+[:]", doc[i])){
         j <- j + 1
         if (j == 22)break()
         
         table_num <- table_num + 1
+        if (table_num == 1){
+          print('##############%%%%%%%%%%%%%%%%%%%%%%%%%yay%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+          write.table(t(data.frame(unlist(mrkts))), filename, sep = ",", col.names =F , append = T)
+        }
         if (table_num != 1){
+          myDF <- data.frame()
           for (aa_region in c(1:num_of_regions)) {
+            
+            
             
             datalist = list()
             filename <- "myDF.csv"
@@ -52,23 +60,21 @@ for (pricedoc in pricedocs) {
             list_names <- list_names[endsWith(list_names, paste0("_", aa_region))]
             
             for (entry in c(1:length(mrkts[[aa_region]]))) {
-              datalist[[length(datalist) + 1]] <- c(region[aa_region], mrkts[[aa_region]][entry])
+              
+                datalist[[length(datalist) + 1]] <- c(region[aa_region], mrkts[[aa_region]][entry])
+                
                 
               for (entry1 in  c(1:length(list_names))) {
                   datalist[[length(datalist)]] <- c(datalist[[length(datalist)]], prices[[ list_names[entry1 ] ]][entry] )
               }
             }
-
-            mylist[[aa_region]] <- do.call(cbind, (datalist))
+              mylist[[aa_region]] <- do.call(cbind, (datalist))[-c(1, 2),]
           }
-          for (aa_region in c(1:num_of_regions)) {
-            
-            ##### Continue here mapping saving mylist to one dataframe
-          }
-          # print(myDF)
+          
+          myDF <- do.call(cbind, (mylist))
           
           write.table(myDF, filename, sep = ",", col.names =F , append = T)
-          myDF <- list()
+          # mylist <- list()
           print(region)
         }
         
@@ -175,7 +181,7 @@ for (pricedoc in pricedocs) {
     print(monthyear)
     print(region)
     print(mrkts)
-    print(birr)
+    print(birr) 
     print(prices)
     print(length(prices))
     tmp <- ave_str.stp
