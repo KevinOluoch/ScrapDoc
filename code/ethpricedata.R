@@ -56,7 +56,7 @@ for (pricedoc in pricedocs) {
             region_vec1[] <- region[entry2]
             Regions <- c(Regions, region_vec1)
           }
-          Markets <- unlist(mrkts)
+          
           write.table(t(data.frame(Regions, Markets)), filename, sep = ",", col.names =F , append = T)
         }
         
@@ -105,18 +105,13 @@ for (pricedoc in pricedocs) {
       ##### Get the regions #####
       if (i == anchor + 7 ){
         region <- gsub("\\s{6,}", "&&&", doc[i])
-        tmp1 <- region
         region <- gsub(" ", "", region )
-        tmp2 <- region
         region <- gsub("&&&", " ", region )
-        tmp3 <- region
         region <- strsplit(region,"\\s+")
-        tmp4 <- region
+        region_tmp <- region
         region <- region[[1]][grepl("^[A-Za-z]+.+$", region[[1]])]
-        tmp5 <- region
         if (length(region) == 0){
-          print(paste0("######################We got no region at: ", i, " in ", substr(doc[i], 1, 12)))
-          tmp6 <- list(tmp1, tmp2, tmp3, tmp4, tmp5)
+          if(region_tmp[[1]][2] == "S") region <- "SNNP"
           }
         #### output filename with region as prefix ###
         filename_tmp <- gsub(
@@ -161,6 +156,21 @@ for (pricedoc in pricedocs) {
           # print(paste0("test: ", as.numeric(ave_str.stp[[1]][a_region, 2])))
           start0_mrkt <- as.numeric(ave_str.stp[[1]][a_region, 2]) + 1
           
+        }
+        
+        Markets <- unlist(mrkts)
+        mrkts_namepos <- str_locate_all(gsub("AVERAGE", "       ", doc[i+1]), "[A-Za-z]+[-]*[A-Za-z]*[[:space:]]")
+        for (mrkts_pos in c(1:dim(mrkts_namepos[[1]])[1]) ) {
+          for (Market in c(1:length(Markets))) {
+            pos1 <- mrkts_namepos[[1]][mrkts_pos, "start"]
+            pos2 <- mrkts_namepos[[1]][mrkts_pos, "end"]
+            if (grepl(Markets[Market], substr(doc[i], pos1, pos1 + 10 ))) {
+              Markets[Market] <- paste0(Markets[Market], " ", substr(doc[i+1], pos1, pos2 ))
+              substr(doc[i],  pos1, pos1 + 3 ) <- "A2C"
+              }
+            
+          }
+           
         }
       }
       
@@ -216,14 +226,14 @@ for (pricedoc in pricedocs) {
     ##### Results of "While Loop The DOc"  #####     
     # print(monthyear)
     print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-    print(region)
-    print(mrkts)
-    print(birr)
-    print(prices)
-    print(length(prices))
-    tmp <- ave_str.stp
-    print(tmp)
-  break()
+    # print(region)
+    # print(mrkts)
+    # print(birr)
+    # print(prices)
+    # print(length(prices))
+    # tmp <- ave_str.stp
+    # print(tmp)
+  # break()
 }
 
 
