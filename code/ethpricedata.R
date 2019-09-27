@@ -19,8 +19,8 @@ for (pricedoc in pricedocs) {
     doc <- read_document(pricedoc) 
     i <- 1
     j <- 0
-    reg_set_num <- 1
-    table_num <- 0
+    reg_set_num <- 0 # Table number: As labelled in the data
+    table_num <- 0 # Number of consecutive tables with region(s) data
     mrkts <- list()
     
     anchor <- 0
@@ -36,17 +36,21 @@ for (pricedoc in pricedocs) {
     
     ##### While Loop The DOc  #####    
     while (TRUE) {
+      ##### Initiate and Save Table ####
       # print (paste("i", i))
       # print(doc[i])
-      ##### Initiate and Save Table ####
       if ( grepl("^Table[[:space:]]+[0-9]+[[:space:]]+[:]", doc[i])){
         line_one <- doc[i]
-        if (as.integer(gsub("[^0-9]", "", substr(doc[i], 1, 12))) == reg_set_num ){
-          reg_set_num <- reg_set_num + 1
+        
+        if (as.integer(gsub("[^0-9]", "", substr(doc[i], 1, 12))) != reg_set_num ){
+          reg_set_num <- as.integer(gsub("[^0-9]", "", substr(doc[i], 1, 12)))
           table_num <- 0
         }
         
-        j <- j + 1
+        if (j == 0 & paste(region, sep = '', collapse = '_') == "GAMBELLA_DIREDAWA"){
+          j <- j + 1
+          tmp  <- list(region, mrkts, table_num, table_id) 
+          }
         # if (j == 300)break()
         if (table_num == 1){
           print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TABLE CHANGE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
@@ -129,18 +133,20 @@ for (pricedoc in pricedocs) {
       
       ##### Get breaks in region (markets) #####
       if (i == anchor + 9 ){
+        # Get region names (muiltiple in the table)
         ave_str.stp <- str_locate_all(doc[i], "AVERAGE")
         num_of_regions <- 0
         if (!is.na(ave_str.stp[[1]][1])){
           num_of_regions <- dim(ave_str.stp[[1]])[1]
-        }
+          }
+        # Get region names (one in the table)
         if (is.na(ave_str.stp[[1]][1])){
           num_of_regions <- 1
           
           ave_str.stp[[1]] <- t(as.matrix(c(nchar(doc[i]), nchar(doc[i]))))
           colnames(ave_str.stp[[1]]) <- c("start", "end")
+          }
         }
-      }
       
       ##### Extract market names #####
       if (i == anchor + 10 ){
@@ -233,7 +239,7 @@ for (pricedoc in pricedocs) {
     # print(length(prices))
     # tmp <- ave_str.stp
     # print(tmp)
-  # break()
+   break()
 }
 
 
