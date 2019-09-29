@@ -1,5 +1,5 @@
 
-# Load library
+# Load libraries
 
 # if (!require("pacman")) install.packages("pacman")
 # pacman::p_load_gh("trinker/textreadr")
@@ -10,9 +10,11 @@ library(textreadr)
 library(magrittr)
 library(stringr)
 
+
+dir.create("./output", showWarnings = FALSE) # Create output folder if it doesn't exist
+
 # Get files
 pricedocs <- list.files("./data",recursive = TRUE, full.names = TRUE, pattern = "*[.]docx$")
-
 
 for (pricedoc in pricedocs) {
     ##### Initialize Variables  #####
@@ -23,16 +25,16 @@ for (pricedoc in pricedocs) {
     table_num <- 0 # Number of consecutive tables with region(s) data
     mrkts <- list()
     
-    anchor <- 0
+    anchor <- 0 # Used to mark the start of a table 
     birr <- 0
     item_count <- 0
     mrkts_count <- 0
     prices <- list()
     region <- NA
-    mrkts <- list()
+    mrkts <- list() # vectors of markets in the table - separated by region 
     monthyear <- NA
-    num_of_regions <- 0
-    mylist <- list()
+    num_of_regions <- 0 # Number of regions in the current table
+    mylist <- list() # vectors of price data in the table - separated by region
     
     ##### While Loop The DOc  #####    
     while (TRUE) {
@@ -47,10 +49,7 @@ for (pricedoc in pricedocs) {
           table_num <- 0
         }
         
-        if (j == 0 & paste(region, sep = '', collapse = '_') == "GAMBELLA_DIREDAWA"){
-          j <- j + 1
-          tmp  <- list(region, mrkts, table_num, table_id) 
-          }
+
         # if (j == 300)break()
         if (table_num == 1){
           print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TABLE CHANGE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
@@ -61,7 +60,10 @@ for (pricedoc in pricedocs) {
             Regions <- c(Regions, region_vec1)
           }
           
-          write.table(t(data.frame(Regions, Markets)), filename, sep = ",", col.names =F , append = T)
+          write.table(t(data.frame(Regions=c("CATEGORY","ITEM","UNIT",Regions), 
+                                   Markets=c("CATEGORY","ITEM","UNIT",Markets))), 
+                      filename, sep = ",", col.names =F , append = T
+                      )
         }
         
         table_num <- table_num + 1
@@ -69,19 +71,37 @@ for (pricedoc in pricedocs) {
           myDF <- data.frame()
           for (aa_region in c(1:num_of_regions)) {
             
-            datalist = list()
+            
             list_names <- names(prices)
             if(is.null(list_names)) break() 
             list_names <- list_names[endsWith(list_names, paste0("_", aa_region))]
             
+            datalist = list()
+           if(aa_region == 1){
+             datalist[[length(datalist) + 1]] <- c("CATEGORY","CATEGORY",  sub("[_][1][a][1][_].+$", "", list_names))
+            ITEM <- sub("^.+[_][1][a][1][_]", "", list_names)
+            datalist[[length(datalist) + 1]] <- c("ITEM","ITEM",  sub("[_][2][b][2][_].+$", "", ITEM))
+            UNIT<- sub("^.+[_][2][b][2][_]", "", list_names)
+            datalist[[length(datalist) + 1]] <- c("UNIT","UNIT",  sub("[_][3][c][3][_].+$", "", UNIT))
+            }
+            
+            
             for (entry in c(1:length(mrkts[[aa_region]]))) {
               datalist[[length(datalist) + 1]] <- c(region[aa_region], mrkts[[aa_region]][entry])
               for (entry1 in  c(1:length(list_names))) {
-                  datalist[[length(datalist)]] <- c(datalist[[length(datalist)]], prices[[ list_names[entry1 ] ]][entry] )
+                  
+                  datalist[[length(datalist)]] <- c(datalist[[length(datalist)]],
+                                                    prices[[ list_names[entry1 ] ]][entry] )
               }
             }
-            mylist[[aa_region]] <- do.call(cbind, (datalist))[-c(1, 2),]
+            mylist[[aa_region]] <- do.call( cbind, datalist )[-c(1, 2),]
           }
+          
+          
+          
+          
+          
+          
           
           myDF <- do.call(cbind, (mylist))
           
@@ -131,10 +151,10 @@ for (pricedoc in pricedocs) {
         filename <- paste0("output", "/", paste(region, sep = '', collapse = '_'), "_", table_id, "_", filename_tmp, ".csv")
       }
       
-      ##### Get breaks in region (markets) #####
+      ##### Get breaks in region (markets) ###
       if (i == anchor + 9 ){
         # Get region names (muiltiple in the table)
-        ave_str.stp <- str_locate_all(doc[i], "AVERAGE")
+        ave_str.stp <- str_locate_all(doc[i], "AVERAGE") ##, "TOWN", "LEVEL")
         num_of_regions <- 0
         if (!is.na(ave_str.stp[[1]][1])){
           num_of_regions <- dim(ave_str.stp[[1]])[1]
@@ -145,8 +165,12 @@ for (pricedoc in pricedocs) {
           
           ave_str.stp[[1]] <- t(as.matrix(c(nchar(doc[i]), nchar(doc[i]))))
           colnames(ave_str.stp[[1]]) <- c("start", "end")
-          }
         }
+        # if (paste(region, sep = '', collapse = '_') == "GAMBELLA_DIREDAWA"){
+        #   j <- j + 1
+        #   tmp  <- list(region, mrkts, table_num, table_id) 
+        #   }
+      }
       
       ##### Extract market names #####
       if (i == anchor + 10 ){
@@ -180,7 +204,7 @@ for (pricedoc in pricedocs) {
         }
       }
       
-      ##### GEt section head ####
+      ##### GEt section head ###
       if (doc[i] == "P R I C E   I N    B I R R") birr <- 1
       # print(doc[i])
       
@@ -193,9 +217,10 @@ for (pricedoc in pricedocs) {
         
         if (!nchar(raw_price_str2) == 0){
           # Get item name
-          item_name <- gsub('[.]{2,}', "", raw_price_str1)
+          item_name <- sub('[.]+.+$', "", raw_price_str1)
+          item_unit <- sub('^.+[.]+[[:space:]]*', "", raw_price_str1)
           
-          prices_str <- raw_price_str2 # strsplit(doc[i],"...... Kg")[[1]][2]
+          prices_str <- raw_price_str2 
           start0_price <- 1
           
           for (a_region in c(1:num_of_regions)){
@@ -204,13 +229,14 @@ for (pricedoc in pricedocs) {
             part_prices_str <- substr(part_prices_str, start0_price, as.numeric(ave_str.stp[[1]][a_region, 2]))
             prices1 <- strsplit(part_prices_str,"\\s+")
             # item_count <- item_count + 1
-            prices[[paste0(ttle, item_name, "_", a_region)]] <- prices1[[1]][(prices1[[1]] %in% "-") | 
-                                                                               grepl("^[[:digit:]]+[.]{0,1}[[:digit:]]+$", prices1[[1]]) |
-                                                                               grepl("^[.][[:digit:]][[:digit:]]$", prices1[[1]])
-                                                                             ]
+            cat_item_unit <- paste0(ttle, "_1a1_", item_name, "_2b2_", item_unit, "_3c3_", a_region)
+            prices[[cat_item_unit]] <- prices1[[1]][(prices1[[1]] %in% "-") | 
+                                                      grepl("^[[:digit:]]+[.]{0,1}[[:digit:]]+$", prices1[[1]]) |
+                                                      grepl("^[.][[:digit:]][[:digit:]]$", prices1[[1]])
+                                                    ]
             # print(prices)
-            if(is.na(prices[[paste0(ttle, item_name, "_", a_region)]][1])){
-              prices[[paste0(ttle, item_name, "_", a_region)]] <- c()
+            if(is.na(prices[[cat_item_unit]][1])){
+              prices[[cat_item_unit]] <- c()
               
               }
             start0_price <- as.numeric(ave_str.stp[[1]][a_region, 2]) + 1
